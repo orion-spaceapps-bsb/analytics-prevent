@@ -7,4 +7,12 @@ This is a single file server, the dataset used in the development was the daily 
 ## To run
 
 You need to ```pip install``` **all dependencies listed** in the ```server.py``` file.
+
+Run ```pip install netCDF4```.<br />
+Run ```pip install numpy```.<br />
+Run ```pip install matplotlib```.<br />
+Run ```pip install flask```.<br />
+Run ```pip install codecs```.<br />
+Run ```pip install pandas```.<br />
+
 Run ```python3 server.py```, this up the server to acess endpoints.

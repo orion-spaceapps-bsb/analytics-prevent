@@ -1,13 +1,15 @@
-import netCDF4 as netCDF4
+from netCDF4 import Dataset
 import numpy as np
 import datetime
 import matplotlib.pyplot as plt
+import math
+import matplotlib.mlab as mlab
 
 
 def getLatitudeAsIndex(lat):
-    latitudeInit = -45.625
+    latitudeInit = -49.875
     latitudeAsIndex = 0
-    while latitudeInit <= -0.125:
+    while latitudeInit <= 49.875:
         if lat == latitudeInit:
             return latitudeAsIndex
         else:
@@ -16,7 +18,7 @@ def getLatitudeAsIndex(lat):
 
 
 def getLongitudeAsIndex(lon):
-    longitudeInit = -83.625
+    longitudeInit = -179.875
     longitudeAsIndex = 0
     while longitudeInit <= 179.875:
         if lon == longitudeInit:
@@ -25,74 +27,68 @@ def getLongitudeAsIndex(lon):
             longitudeAsIndex += 1
             longitudeInit = longitudeInit + 0.25
 
+# LATITUDE EH A COLUNA LONGITUDE EH A LINHA
+
 
 def getPrecipitation(lat, lon, date):
-    path = ("./3B42_Daily." + date + ".7.nc4.nc4")
-    dataset = netCDF4.Dataset(path)
-    return (dataset.variables['precipitation'][getLongitudeAsIndex(lon)][getLatitudeAsIndex(lat)])
+    path = ("./data/3B42_Daily.%s.7.nc4" % (date))
+    # path = ("./data/3B42_Daily.20180728.7.nc4")
+    # print(path)
+    # print(date)
+    latitudeIndex = getLatitudeAsIndex(lat)
+    longitudeIndex = getLongitudeAsIndex(lon)
+
+    # print(latitudeIndex, longitudeIndex)
+
+    result = Dataset(path)
+    a = (result.variables['precipitation'][longitudeIndex][latitudeIndex])
+    return a
 
 
-# 2017-07-30 to 2018-07-30
 def parseDates(y, m, d):
     date = datetime.date(y, m, d)
-    for i in range(366):
+    dates = list()
+    for i in range(265):
         date += datetime.timedelta(days=1)
-        print(date.strftime("%Y%m%d"))
+        dates.append(date.strftime("%Y%m%d"))
+    return dates
 
 
-def formatDate(y, m, d):
-    y = str(y)
-    if (m < 10):
-        m = "0" + str(m)
-    else:
-        m = str(m)
-    if (d < 10):
-        d = "0" + str(d)
-    else:
-        d = str(d)
-    return(y+m+d)
-
-
-def preciptFilter(x):
-    return x > 1
-
-# print(formatDate(2017, 7, 30))
-
-
-array = list()
-array.append(getPrecipitation(-1.375, -48.625, "20170730"))
-array.append(getPrecipitation(-1.375, -48.625, "20170731"))
-array.append(getPrecipitation(-1.375, -48.625, "20170801"))
-array.append(getPrecipitation(-1.375, -48.625, "20170802"))
-array.append(getPrecipitation(-1.375, -48.625, "20170803"))
-array.append(getPrecipitation(-1.375, -48.625, "20170804"))
-array.append(getPrecipitation(-1.375, -48.625, "20170805"))
-array.append(getPrecipitation(-1.375, -48.625, "20170806"))
-
-# drenagem
-# rochoso < 20
-# argila 20-30
-# argila arenosa 30-70
-# areia fina 70-140
-# cascalhos > 140
-
-# escoamento = (precipitacao - 0.2 * drenagem)²/(precipitacao - 0.2*drenagem + drenagem)
-# se precipitacao > 0.2 * drenagem
-
-
-def calcRunoffCurve(preciptation, soilRunoff):
-    flowIntensity = 0
+def calcFloodIntensity(preciptation, soilRunoff):
+    floodIntensity = 0
     initialLoss = 0.2 * soilRunoff
     if preciptation <= (initialLoss):
-        return flowIntensity
+        return floodIntensity
     else:
-        flowIntensity = (preciptation - (initialLoss)) / \
+        floodIntensity = (preciptation - (initialLoss)) / \
             ((preciptation-(initialLoss))+soilRunoff)
+        return floodIntensity
 
 
-print(np.mean(array))
-print(np.median(array))
+def calcRunoffCurveNumber(soilRunoff):
+    return 25400/(soilRunoff - 254)
 
+
+dates = list()
+dates = (parseDates(2017, 11, 7))
+
+i = 0
+result = list()
+for i in range(len(dates)):
+    # passa latitude e depois longitude
+    date = (dates[i])
+    response = getPrecipitation(44.125, -89.875, str(date))
+    result.append(response)
+
+# print(len(result))
+# print(result)
+
+fullFloodIntensity = list()
+for i in range(len(result)):
+    fullFloodIntensity.append(calcFloodIntensity(result[i], 30))
+
+
+print(fullFloodIntensity)
 
 # usar numero de habitante para fazer calculo de gasto com correçao
 # receber input de capacidade de escoamento do solo para ver quantas vezes chove mais que a capacidade
@@ -100,37 +96,21 @@ print(np.median(array))
 # calcular o preço da obra
 # calcular retorno por investimento com preço da obra e calculo de gasto com correçao
 
-
-res = list(filter(lambda x: x > 1, array))
-print(res)
-
-
 # plot graphics
-# plt.plot(array)
-# plt.ylabel('precipt')
+
+# a(np.median(result))
+# plt.plot(fullFloodIntensity)
+# plt.ylabel('flood intensity')
 # plt.xlabel('day')
 # plt.show()
 
-
-# x = map(preciptFilter, array)
-# print(x)
-# # print (dataset.file_format)
-# # print (dataset.dimensions.keys())
-# # print (dataset.variables.keys())
-# k = 0
-# count = 0
-# for k in range(100):
-#     a = (dataset.variables['precipitation'][k][:])
-#     rounded = numpy.round(a, 2)
-#     count += 1
-#     print("linha", count, "valor", rounded)
-
-# print (count)
-#
-# a = (dataset.variables['precipitation'][73][:])
+mu = np.mean(result)
+variance = 1
+sigma = math.sqrt(variance)
+x = np.linspace(mu - 3*sigma, mu + 3*sigma, 100)
+plt.plot(x, mlab.normpdf(x, mu, sigma))
+plt.show()
 
 
-# # k = dataset.dimensions.keys()
-# # print(k)
-# # f = open('test_logs.txt', 'a+')
-# # f.write(str(k))
+# print(dates[0])
+# print(len(dates))

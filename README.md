@@ -16,3 +16,8 @@ Run ```pip install codecs```.<br />
 Run ```pip install pandas```.<br />
 
 Run ```python3 server.py```, this up the server to acess endpoints.
+
+## Using data
+After download all the data, add them to /data folder to use.
+
+Please check if the files are saved with correct extension .nc4 and if files are not saved like ".nc4.nc4". Please save them as ```<name_of_the_file>.nc4```.
